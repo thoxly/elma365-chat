@@ -31,6 +31,7 @@ async def send_message(
     db=Depends(get_db_or_supabase),
 ):
     """Send a message in chat and get AI response."""
+    logger.debug("POST /messages user_id=%s session_id=%s", request.user_id, request.session_id)
     try:
         service = ChatService(db)
         result = await service.send_message(
@@ -42,7 +43,7 @@ async def send_message(
         )
         return MessageResponse(**result)
     except Exception as e:
-        logger.error(f"Error sending message: {e}")
+        logger.error("Error sending message: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -75,7 +76,7 @@ async def upload_document(
             "uploaded_at": uploaded_at,
         }
     except Exception as e:
-        logger.error(f"Error uploading document: {e}")
+        logger.error("Error uploading document: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -85,12 +86,14 @@ async def list_sessions(
     db=Depends(get_db_or_supabase),
 ):
     """List chat sessions for user (for sidebar)."""
+    logger.debug("GET /sessions user_id=%s", user_id)
     try:
         service = ChatService(db)
         sessions = await service.list_sessions(user_id)
+        logger.debug("list_sessions response: %s sessions", len(sessions))
         return {"sessions": sessions}
     except Exception as e:
-        logger.error(f"Error listing sessions: {e}")
+        logger.error("Error listing sessions: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -119,7 +122,7 @@ async def create_session(
             "created_at": (created or {}).get("created_at"),
         }
     except Exception as e:
-        logger.error(f"Error creating session: {e}")
+        logger.error("Error creating session: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -144,7 +147,7 @@ async def update_session(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating session: {e}")
+        logger.error("Error updating session: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -155,10 +158,12 @@ async def get_history(
     db=Depends(get_db_or_supabase),
 ):
     """Get chat history for a session."""
+    logger.debug("GET /sessions/%s/history user_id=%s", session_id, user_id)
     try:
         service = ChatService(db)
         history = await service.get_history(user_id, session_id)
+        logger.debug("get_history response: %s messages", len(history))
         return {"messages": history}
     except Exception as e:
-        logger.error(f"Error getting history: {e}")
+        logger.error("Error getting history: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

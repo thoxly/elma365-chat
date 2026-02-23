@@ -23,6 +23,9 @@ class ChatService:
     def __init__(self, db: Union[AsyncSession, Any]):
         self._db = db
         self._supabase = db if _is_supabase(db) else None
+        backend = "Supabase API" if self._supabase else "direct DB (SQLAlchemy)"
+        logger.info("ChatService init: storage_backend=%s", backend)
+        logger.debug("ChatService init: _supabase=%s, _db type=%s", self._supabase is not None, type(db).__name__)
         self.mcp_client = MCPClient()
         self.rules_service = KnowledgeRulesService(db)
 
@@ -187,8 +190,10 @@ class ChatService:
 
     async def list_sessions(self, user_id: str) -> List[Dict[str, Any]]:
         """Список сессий (чатов) пользователя, по убыванию updated_at. Включает сессии только из сообщений, если нет в chat_sessions."""
+        logger.debug("list_sessions: user_id=%s backend=%s", user_id, "supabase" if self._supabase else "sql")
         if self._supabase:
             rows = await sdb.sessions_list(self._supabase, user_id)
+            logger.debug("list_sessions (supabase): got %s sessions", len(rows))
             return [
                 {
                     "session_id": r["session_id"],
@@ -232,12 +237,15 @@ class ChatService:
                 "updated_at": last_at.isoformat() if last_at else None,
             })
         from_db.sort(key=lambda x: (x["updated_at"] or ""), reverse=True)
+        logger.debug("list_sessions (sql): returning %s sessions", len(from_db))
         return from_db
 
     async def ensure_session(self, user_id: str, session_id: str, title_for_new: Optional[str] = None) -> None:
         """Создать сессию, если нет; при создании задать title_for_new."""
+        logger.debug("ensure_session: user_id=%s session_id=%s backend=%s", user_id, session_id, "supabase" if self._supabase else "sql")
         if self._supabase:
             await sdb.session_upsert(self._supabase, user_id, session_id, title_for_new)
+            logger.debug("ensure_session (supabase): upsert done")
             return
         result = await self._db.execute(
             select(ChatSession).where(
@@ -250,6 +258,7 @@ class ChatService:
         sess = ChatSession(user_id=user_id, session_id=session_id, title=title_for_new or "Новый чат")
         self._db.add(sess)
         await self._db.commit()
+        logger.debug("ensure_session (sql): created new session")
 
     async def update_session_title(self, user_id: str, session_id: str, title: str) -> bool:
         """Обновить заголовок сессии. Возвращает True, если сессия найдена."""
@@ -271,8 +280,10 @@ class ChatService:
 
     async def get_history(self, user_id: str, session_id: str) -> List[Dict[str, Any]]:
         """Get chat history for a session."""
+        logger.debug("get_history: user_id=%s session_id=%s backend=%s", user_id, session_id, "supabase" if self._supabase else "sql")
         if self._supabase:
             messages = await sdb.messages_list(self._supabase, user_id, session_id)
+            logger.debug("get_history (supabase): got %s messages", len(messages))
             return [
                 {
                     "id": m["id"],
@@ -293,6 +304,7 @@ class ChatService:
             .order_by(ChatMessage.created_at)
         )
         messages = result.scalars().all()
+        logger.debug("get_history (sql): got %s messages", len(messages))
         return [
             {
                 "id": msg.id,

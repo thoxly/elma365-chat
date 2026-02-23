@@ -13,15 +13,16 @@ def _read_env(*keys: str) -> Optional[str]:
 
 
 class Settings(BaseSettings):
-    # Supabase API (preferred for Cloud Run: no DB password, use URL + anon key)
-    # Cloud Run: SUPABASE_URL or VITE_SUPABASE_URL; SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_DEFAULT_KEY
+    # Supabase API (preferred for Cloud Run: no DB password, use URL + Publishable Key)
+    # Use Publishable Key from Supabase dashboard (NOT "Anon Key (Legacy)").
+    # Env: VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY or SUPABASE_PUBLISHABLE_DEFAULT_KEY; SUPABASE_URL or VITE_SUPABASE_URL
     SUPABASE_URL: Optional[str] = Field(
         default_factory=lambda: os.environ.get("VITE_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
     )
     SUPABASE_ANON_KEY: Optional[str] = Field(
-        default_factory=lambda: os.environ.get("SUPABASE_PUBLISHABLE_DEFAULT_KEY")
-        or os.environ.get("VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY")
-        or os.environ.get("SUPABASE_ANON_KEY")
+        default_factory=lambda: os.environ.get("VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+        or os.environ.get("SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")  # fallback only
     )
 
     # Database direct (optional: for crawler/docs/vector search; omit in Cloud Run when using only Supabase API)
@@ -74,6 +75,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # ignore extra env vars (e.g. VITE_*) not declared on Settings
 
 
 settings = Settings()

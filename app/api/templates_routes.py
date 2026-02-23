@@ -114,7 +114,7 @@ async def create_template(
         await db.refresh(db_template)
         return TaskTemplateResponse.model_validate(db_template)
     except Exception as e:
-        logger.error(f"Error creating template: {e}")
+        logger.error("Error creating template: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -128,7 +128,7 @@ async def list_templates(db=Depends(get_db_or_supabase)):
         templates = result.scalars().all()
         return [TaskTemplateResponse.model_validate(t) for t in templates]
     except Exception as e:
-        logger.error(f"Error listing templates: {e}")
+        logger.error("Error listing templates: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -151,7 +151,7 @@ async def get_template(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting template: {e}")
+        logger.error("Error getting template: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -205,7 +205,7 @@ async def update_template(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating template: {e}")
+        logger.error("Error updating template: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -231,5 +231,5 @@ async def delete_template(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting template: {e}")
+        logger.error("Error deleting template: %s: %s", type(e).__name__, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

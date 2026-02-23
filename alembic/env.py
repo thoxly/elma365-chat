@@ -13,8 +13,13 @@ from app.config import settings
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override sqlalchemy.url with settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Use DATABASE_URL from settings (avoid ConfigParser % interpolation issues)
+# Only set in config if no url in .ini, and escape % for ConfigParser
+if settings.DATABASE_URL:
+    try:
+        config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
+    except ValueError:
+        pass
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

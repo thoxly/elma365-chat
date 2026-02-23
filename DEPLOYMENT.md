@@ -38,9 +38,11 @@ postgresql+asyncpg://postgres:[YOUR-PASSWORD]@db.udcyreqnpyqhibessawi.supabase.c
 
 ### Миграции
 
+**При деплое на Cloud Run** миграции запускаются автоматически: при старте контейнера, если задана переменная **DATABASE_URL**, выполняется `alembic upgrade head` (см. `docker-entrypoint.sh` и `Dockerfile`). Отдельно ничего запускать не нужно.
+
+Локально (с настроенным DATABASE_URL):
+
 ```bash
-# Локально (с настроенным DATABASE_URL)
-# Если несколько голов: alembic upgrade add_chat_sessions (для таблицы чатов)
 alembic upgrade head
 ```
 
@@ -82,12 +84,12 @@ CI/CD уже настроен: «Continuously deploy from a repository». При
 **Подключение к данным (один из вариантов):**
 
 - **Вариант A — Supabase API** (рекомендуется: не нужен пароль БД):
-  - **VITE_SUPABASE_URL** или **SUPABASE_URL** — URL проекта, например `https://rqcegznybflakuxjqkqu.supabase.co`
-  - **SUPABASE_PUBLISHABLE_DEFAULT_KEY** или **SUPABASE_ANON_KEY** — publishable/anon ключ (`sb_publishable_***`)
+  - **VITE_SUPABASE_URL** или **SUPABASE_URL** — URL проекта, например `https://xxx.supabase.co`
+  - **VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY** или **SUPABASE_PUBLISHABLE_DEFAULT_KEY** — Publishable Key из дашборда Supabase (не Anon Key (Legacy))
   - Чат, шаблоны и правила знаний работают через API. Эндпоинты краулера/docs требуют DATABASE_URL (вариант B).
 
 - **Вариант B — прямое подключение к PostgreSQL:**
-  - **DATABASE_URL** — connection string в формате `postgresql+asyncpg://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres` (пароль с спецсимволами — в URL-кодировке: `@` → `%40`, `#` → `%23`).
+  - **DATABASE_URL** — connection string в формате `postgresql+asyncpg://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres` (пароль с спецсимволами — в URL-кодировке: `@` → `%40`, `#` → `%23`). При наличии DATABASE_URL при каждом деплое перед стартом приложения автоматически выполняются миграции (`alembic upgrade head`).
 
 **Остальные переменные:**
 
@@ -157,9 +159,39 @@ python scripts/check_all_services.py
 
 ## Troubleshooting
 
+### 500 Internal Server Error на /api/chat и /api/templates
+
+Если все запросы к `/api/chat/sessions`, `/api/chat/sessions/.../history`, `/api/chat/messages`, `/api/templates/` и т.п. возвращают **500**, ошибка возникает уже внутри обработчика (маршрут найден, зависимость `get_db_or_supabase` отработала). Чтобы увидеть **реальную причину**:
+
+1. **Включите подробные логи:** в Cloud Run → сервис → Edit & deploy new revision → Variables добавьте/измените:
+   - **LOG_LEVEL=DEBUG**
+2. **Откройте логи ревизии** (Logs), воспроизведите 500 (например, откройте чат или список шаблонов).
+3. **Найдите строку с ошибкой:** ищите по тексту:
+   - `Error listing sessions:`, `Error getting history:`, `Supabase API error:` — сразу после неё будет **тип исключения** и **сообщение** (например `RuntimeError: Supabase API error: ...` или от Supabase/сети).
+   - Полный traceback пишется при `exc_info=True`; если лог обрезан, первая строка с типом и текстом исключения уже даёт причину.
+
+**Типичные причины 500 при использовании Supabase API:**
+
+| Причина | Что сделать |
+|--------|--------------|
+| Неверный ключ (401/403 от Supabase) | В Cloud Run должен быть **Publishable Key** из дашборда Supabase (Settings → API). Не используйте «Anon Key (Legacy)». Переменные: `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` или `SUPABASE_PUBLISHABLE_DEFAULT_KEY`. |
+| SUPABASE_URL или ключ не заданы | Задайте оба: `VITE_SUPABASE_URL` (или `SUPABASE_URL`) и один из ключей выше. Иначе приложение попытается использовать DATABASE_URL; если и его нет — будет 503, не 500. |
+| RLS (Row Level Security) блокирует запросы | В Supabase (Table Editor → таблица → RLS) проверьте политики для таблиц `chat_sessions`, `chat_messages`, `task_templates`. Для сервисного ключа/anon может понадобиться политика SELECT/INSERT/UPDATE для нужных ролей. |
+| Таблицы отсутствуют | Если проект новый, создайте таблицы в SQL Editor (см. раздел «База данных» выше и миграции). При использовании только Supabase API миграции не создают таблицы автоматически — их нужно создать вручную или через миграции с DATABASE_URL. |
+
+**Чек-лист переменных окружения (Cloud Run) при 500:**
+
+- `VITE_SUPABASE_URL` или `SUPABASE_URL` — URL вида `https://xxxx.supabase.co`
+- `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` или `SUPABASE_PUBLISHABLE_DEFAULT_KEY` — именно Publishable Key (не Anon Legacy)
+- Либо вместо Supabase API: `DATABASE_URL=postgresql+asyncpg://...` (тогда чат/шаблоны работают через прямое подключение к БД)
+
+---
+
 | Проблема | Что проверить |
 |----------|----------------|
 | Нет подключения к БД | Пароль в DATABASE_URL, расширения vector/pg_trgm, доступность хоста |
 | Бэкенд не стартует на Cloud Run | Логи ревизии, переменные окружения, порт 8080 |
 | Фронт не видит API | VITE_API_URL на Vercel, CORS на бэкенде |
 | 404 на фронте при прямом переходе по URL | Rewrites в vercel.json (SPA fallback на index.html) |
+| 500 на /api/chat/sessions/... /history | См. раздел выше «500 Internal Server Error на /api/chat и /api/templates»; проверить Publishable Key и RLS. |
+| Отладка чата/БД | В Cloud Run задать **LOG_LEVEL=DEBUG** — в логах: выбор хранилища (Supabase API / direct DB), вызовы get_history/list_sessions, сообщение «Supabase API error:» при сбое запроса к API |

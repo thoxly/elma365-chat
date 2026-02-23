@@ -1,13 +1,21 @@
 """Supabase API helpers (run sync client calls in thread to not block event loop)."""
 import asyncio
+import logging
 from typing import Any, Dict, List, Optional
 
 # Supabase client type (sync)
 Client = Any
+logger = logging.getLogger(__name__)
 
 
 async def _run_sync(sync_fn):
-    return await asyncio.to_thread(sync_fn)
+    """Run sync Supabase call in thread; re-raise with clear message for logs."""
+    try:
+        return await asyncio.to_thread(sync_fn)
+    except Exception as e:
+        msg = f"Supabase API error: {type(e).__name__}: {e}"
+        logger.error("%s", msg, exc_info=True)
+        raise RuntimeError(msg) from e
 
 
 # --- task_templates ---
@@ -45,6 +53,7 @@ async def template_delete(sb: Client, template_id: int) -> None:
 # --- chat_sessions ---
 
 async def sessions_list(sb: Client, user_id: str) -> List[Dict[str, Any]]:
+    logger.debug("supabase_db.sessions_list: user_id=%s table=chat_sessions", user_id)
     r = await _run_sync(
         lambda: sb.table("chat_sessions")
         .select("session_id, title, created_at, updated_at")
@@ -52,15 +61,18 @@ async def sessions_list(sb: Client, user_id: str) -> List[Dict[str, Any]]:
         .order("updated_at", desc=True)
         .execute()
     )
+    logger.debug("supabase_db.sessions_list: got %s rows", len(r.data or []))
     return r.data or []
 
 
 async def session_upsert(sb: Client, user_id: str, session_id: str, title_for_new: Optional[str] = None) -> Dict[str, Any]:
     """Создать сессию если нет; при создании задать title_for_new, при существующей не менять title."""
+    logger.debug("supabase_db.session_upsert: user_id=%s session_id=%s table=chat_sessions", user_id, session_id)
     r_existing = await _run_sync(
         lambda: sb.table("chat_sessions").select("*").eq("session_id", session_id).eq("user_id", user_id).maybe_single().execute()
     )
     if r_existing.data:
+        logger.debug("supabase_db.session_upsert: existing session found")
         return r_existing.data
     r = await _run_sync(
         lambda: sb.table("chat_sessions")
@@ -69,6 +81,7 @@ async def session_upsert(sb: Client, user_id: str, session_id: str, title_for_ne
         .single()
         .execute()
     )
+    logger.debug("supabase_db.session_upsert: inserted new session")
     return r.data
 
 
@@ -93,6 +106,7 @@ async def message_insert(sb: Client, row: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def messages_list(sb: Client, user_id: str, session_id: str) -> List[Dict[str, Any]]:
+    logger.debug("supabase_db.messages_list: user_id=%s session_id=%s table=chat_messages", user_id, session_id)
     r = await _run_sync(
         lambda: sb.table("chat_messages")
         .select("*")
@@ -101,6 +115,7 @@ async def messages_list(sb: Client, user_id: str, session_id: str) -> List[Dict[
         .order("created_at")
         .execute()
     )
+    logger.debug("supabase_db.messages_list: got %s rows", len(r.data or []))
     return r.data or []
 
 

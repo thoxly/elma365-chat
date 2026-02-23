@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
+# Entrypoint: run migrations when DATABASE_URL is set, then start the app
+RUN chmod +x /app/docker-entrypoint.sh
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
 # Cloud Run listens on 8080
 EXPOSE 8080
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
