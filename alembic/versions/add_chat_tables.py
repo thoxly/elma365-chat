@@ -1,7 +1,7 @@
 """Add chat tables: knowledge_rules, task_templates, chat_messages, chat_documents
 
 Revision ID: add_chat_tables
-Revises: remove_runs_table
+Revises: add_embeddings_and_chunks
 Create Date: 2025-02-22 12:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'add_chat_tables'
-down_revision: Union[str, None] = 'remove_runs_table'
+down_revision: Union[str, None] = 'add_embeddings_and_chunks'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
