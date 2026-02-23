@@ -40,7 +40,23 @@ postgresql+asyncpg://postgres:[YOUR-PASSWORD]@db.udcyreqnpyqhibessawi.supabase.c
 
 ```bash
 # Локально (с настроенным DATABASE_URL)
+# Если несколько голов: alembic upgrade add_chat_sessions (для таблицы чатов)
 alembic upgrade head
+```
+
+**Таблица сессий чата (`chat_sessions`):** если используете только Supabase API (без миграций), создайте таблицу в SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id SERIAL PRIMARY KEY,
+  session_id TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT 'Новый чат',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_chat_sessions_user_id ON chat_sessions(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_chat_sessions_session_id ON chat_sessions(session_id);
 ```
 
 ### Проверка

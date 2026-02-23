@@ -79,6 +79,75 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/sessions")
+async def list_sessions(
+    user_id: str,
+    db=Depends(get_db_or_supabase),
+):
+    """List chat sessions for user (for sidebar)."""
+    try:
+        service = ChatService(db)
+        sessions = await service.list_sessions(user_id)
+        return {"sessions": sessions}
+    except Exception as e:
+        logger.error(f"Error listing sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CreateSessionRequest(BaseModel):
+    user_id: str
+    session_id: Optional[str] = None  # если не передан — сгенерировать на бэкенде
+    title: Optional[str] = None
+
+
+@router.post("/sessions")
+async def create_session(
+    request: CreateSessionRequest,
+    db=Depends(get_db_or_supabase),
+):
+    """Create a new chat session. Returns session_id and title."""
+    import uuid
+    session_id = request.session_id or f"session-{uuid.uuid4().hex[:12]}"
+    try:
+        service = ChatService(db)
+        await service.ensure_session(request.user_id, session_id, request.title)
+        sessions = await service.list_sessions(request.user_id)
+        created = next((s for s in sessions if s["session_id"] == session_id), None)
+        return {
+            "session_id": session_id,
+            "title": (created or {}).get("title", request.title or "Новый чат"),
+            "created_at": (created or {}).get("created_at"),
+        }
+    except Exception as e:
+        logger.error(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class UpdateSessionRequest(BaseModel):
+    title: str
+
+
+@router.patch("/sessions/{session_id}")
+async def update_session(
+    session_id: str,
+    user_id: str,
+    body: UpdateSessionRequest,
+    db=Depends(get_db_or_supabase),
+):
+    """Update session title."""
+    try:
+        service = ChatService(db)
+        ok = await service.update_session_title(user_id, session_id, body.title)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"session_id": session_id, "title": body.title}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/sessions/{session_id}/history")
 async def get_history(
     session_id: str,

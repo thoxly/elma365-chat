@@ -28,7 +28,7 @@ export default function Templates() {
   return (
     <div className="templates-page">
       <h2>Шаблоны заданий</h2>
-      <button type="button" onClick={load} className="btn secondary">Обновить</button>
+      <button type="button" onClick={load} className="btn-secondary">Обновить</button>
       <ul className="templates-list">
         {list.map((t) => (
           <li key={t.id} className="template-card">

@@ -98,10 +98,22 @@ class TaskTemplate(Base):
     created_by = Column(String, nullable=True)
 
 
+class ChatSession(Base):
+    """Сессии чата (список чатов пользователя)."""
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, nullable=False, index=True)  # Бизнес-ключ, как в chat_messages
+    user_id = Column(String, nullable=False, index=True)
+    title = Column(String, nullable=False, server_default="Новый чат")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class ChatMessage(Base):
     """Сообщения в чате"""
     __tablename__ = "chat_messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, nullable=False, index=True)
     session_id = Column(String, nullable=False, index=True)  # Сессия чата

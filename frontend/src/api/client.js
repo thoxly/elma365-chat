@@ -19,6 +19,13 @@ async function request(path, options = {}) {
 export const chatApi = {
   sendMessage: (body) => request('/api/chat/messages', { method: 'POST', body: JSON.stringify(body) }),
   getHistory: (sessionId, userId) => request(`/api/chat/sessions/${sessionId}/history?user_id=${encodeURIComponent(userId)}`),
+  listSessions: (userId) => request(`/api/chat/sessions?user_id=${encodeURIComponent(userId)}`),
+  createSession: (body) => request('/api/chat/sessions', { method: 'POST', body: JSON.stringify(body) }),
+  updateSessionTitle: (sessionId, userId, title) =>
+    request(`/api/chat/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    }),
   uploadDocument: async (userId, sessionId, file) => {
     const form = new FormData();
     form.append('user_id', userId);

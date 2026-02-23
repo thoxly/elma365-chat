@@ -42,6 +42,49 @@ async def template_delete(sb: Client, template_id: int) -> None:
     await _run_sync(lambda: sb.table("task_templates").delete().eq("id", template_id).execute())
 
 
+# --- chat_sessions ---
+
+async def sessions_list(sb: Client, user_id: str) -> List[Dict[str, Any]]:
+    r = await _run_sync(
+        lambda: sb.table("chat_sessions")
+        .select("session_id, title, created_at, updated_at")
+        .eq("user_id", user_id)
+        .order("updated_at", desc=True)
+        .execute()
+    )
+    return r.data or []
+
+
+async def session_upsert(sb: Client, user_id: str, session_id: str, title_for_new: Optional[str] = None) -> Dict[str, Any]:
+    """Создать сессию если нет; при создании задать title_for_new, при существующей не менять title."""
+    r_existing = await _run_sync(
+        lambda: sb.table("chat_sessions").select("*").eq("session_id", session_id).eq("user_id", user_id).maybe_single().execute()
+    )
+    if r_existing.data:
+        return r_existing.data
+    r = await _run_sync(
+        lambda: sb.table("chat_sessions")
+        .insert({"session_id": session_id, "user_id": user_id, "title": title_for_new or "Новый чат"})
+        .select()
+        .single()
+        .execute()
+    )
+    return r.data
+
+
+async def session_update_title(sb: Client, user_id: str, session_id: str, title: str) -> Optional[Dict[str, Any]]:
+    r = await _run_sync(
+        lambda: sb.table("chat_sessions")
+        .update({"title": title})
+        .eq("session_id", session_id)
+        .eq("user_id", user_id)
+        .select()
+        .maybe_single()
+        .execute()
+    )
+    return r.data if r.data else None
+
+
 # --- chat_messages ---
 
 async def message_insert(sb: Client, row: Dict[str, Any]) -> Dict[str, Any]:

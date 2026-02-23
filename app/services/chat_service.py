@@ -2,8 +2,8 @@
 from types import SimpleNamespace
 from typing import List, Optional, Dict, Any, Union
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.database.models import ChatMessage, ChatDocument, TaskTemplate
+from sqlalchemy import select, func
+from app.database.models import ChatMessage, ChatDocument, ChatSession, TaskTemplate
 from app.database import supabase_db as sdb
 from app.services.flexible_agent import FlexibleAgent
 from app.services.knowledge_rules_service import KnowledgeRulesService
@@ -50,6 +50,7 @@ class ChatService:
         attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         sb = self._supabase
+        await self.ensure_session(user_id, session_id, (message[:50].strip() or None))
         user_row = {
             "user_id": user_id,
             "session_id": session_id,
@@ -100,6 +101,7 @@ class ChatService:
         template_id: Optional[int] = None,
         attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
+        await self.ensure_session(user_id, session_id, (message[:50].strip() or None))
         db = self._db
         user_msg = ChatMessage(
             user_id=user_id,
@@ -161,6 +163,7 @@ class ChatService:
         file_type: Optional[str] = None,
     ) -> Any:
         """Upload a document to chat context."""
+        await self.ensure_session(user_id, session_id, None)
         if self._supabase:
             row = {
                 "user_id": user_id,
@@ -181,6 +184,90 @@ class ChatService:
         await self._db.commit()
         await self._db.refresh(doc)
         return doc
+
+    async def list_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Список сессий (чатов) пользователя, по убыванию updated_at. Включает сессии только из сообщений, если нет в chat_sessions."""
+        if self._supabase:
+            rows = await sdb.sessions_list(self._supabase, user_id)
+            return [
+                {
+                    "session_id": r["session_id"],
+                    "title": r.get("title") or "Новый чат",
+                    "created_at": r.get("created_at", "")[:24] if r.get("created_at") else None,
+                    "updated_at": r.get("updated_at", "")[:24] if r.get("updated_at") else None,
+                }
+                for r in rows
+            ]
+        result = await self._db.execute(
+            select(ChatSession)
+            .where(ChatSession.user_id == user_id)
+            .order_by(ChatSession.updated_at.desc())
+        )
+        from_db = [
+            {
+                "session_id": s.session_id,
+                "title": s.title or "Новый чат",
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+            }
+            for s in result.scalars().all()
+        ]
+        known_ids = {s["session_id"] for s in from_db}
+        # Сессии, которые есть в сообщениях, но нет в chat_sessions (старые данные)
+        subq = (
+            select(ChatMessage.session_id, func.max(ChatMessage.created_at).label("last_at"))
+            .where(ChatMessage.user_id == user_id)
+            .group_by(ChatMessage.session_id)
+        )
+        orphan = await self._db.execute(subq)
+        for row in orphan:
+            sid, last_at = row.session_id, row.last_at
+            if sid in known_ids:
+                continue
+            known_ids.add(sid)
+            from_db.append({
+                "session_id": sid,
+                "title": "Новый чат",
+                "created_at": last_at.isoformat() if last_at else None,
+                "updated_at": last_at.isoformat() if last_at else None,
+            })
+        from_db.sort(key=lambda x: (x["updated_at"] or ""), reverse=True)
+        return from_db
+
+    async def ensure_session(self, user_id: str, session_id: str, title_for_new: Optional[str] = None) -> None:
+        """Создать сессию, если нет; при создании задать title_for_new."""
+        if self._supabase:
+            await sdb.session_upsert(self._supabase, user_id, session_id, title_for_new)
+            return
+        result = await self._db.execute(
+            select(ChatSession).where(
+                ChatSession.user_id == user_id,
+                ChatSession.session_id == session_id,
+            )
+        )
+        if result.scalar_one_or_none():
+            return
+        sess = ChatSession(user_id=user_id, session_id=session_id, title=title_for_new or "Новый чат")
+        self._db.add(sess)
+        await self._db.commit()
+
+    async def update_session_title(self, user_id: str, session_id: str, title: str) -> bool:
+        """Обновить заголовок сессии. Возвращает True, если сессия найдена."""
+        if self._supabase:
+            updated = await sdb.session_update_title(self._supabase, user_id, session_id, title)
+            return updated is not None
+        result = await self._db.execute(
+            select(ChatSession).where(
+                ChatSession.user_id == user_id,
+                ChatSession.session_id == session_id,
+            )
+        )
+        sess = result.scalar_one_or_none()
+        if not sess:
+            return False
+        sess.title = title
+        await self._db.commit()
+        return True
 
     async def get_history(self, user_id: str, session_id: str) -> List[Dict[str, Any]]:
         """Get chat history for a session."""
