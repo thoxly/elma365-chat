@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker, AsyncEngine
 from sqlalchemy.orm import declarative_base
+from fastapi import HTTPException
 from app.config import settings
 from app.database.models import Base
 from typing import Optional
@@ -10,9 +11,11 @@ _AsyncSessionLocal: Optional[async_sessionmaker] = None
 
 
 def get_engine() -> AsyncEngine:
-    """Get or create database engine."""
+    """Get or create database engine (requires DATABASE_URL)."""
     global _engine
     if _engine is None:
+        if not settings.DATABASE_URL:
+            raise ValueError("DATABASE_URL is not set (required for direct DB / crawler / docs)")
         _engine = create_async_engine(
             settings.DATABASE_URL,
             echo=False,
@@ -41,7 +44,12 @@ def get_session_factory() -> async_sessionmaker:
 
 
 async def get_db() -> AsyncSession:
-    """Dependency for getting database session."""
+    """Dependency for getting database session (only when DATABASE_URL is set)."""
+    if not settings.DATABASE_URL:
+        raise HTTPException(
+            status_code=503,
+            detail="DATABASE_URL is not set. Use Supabase API for chat/templates/knowledge-rules.",
+        )
     session_factory = get_session_factory()
     async with session_factory() as session:
         try:

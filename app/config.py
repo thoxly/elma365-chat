@@ -1,13 +1,32 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import Optional
 import os
 
 
+def _read_env(*keys: str) -> Optional[str]:
+    for key in keys:
+        v = os.environ.get(key)
+        if v:
+            return v
+    return None
+
+
 class Settings(BaseSettings):
-    # Database (Supabase)
-    # Default: local PostgreSQL. Override with Supabase connection string in .env
-    # Example: postgresql+asyncpg://postgres:[YOUR-PASSWORD]@db.udcyreqnpyqhibessawi.supabase.co:5432/postgres
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/tz-hz"
+    # Supabase API (preferred for Cloud Run: no DB password, use URL + anon key)
+    # Cloud Run: SUPABASE_URL or VITE_SUPABASE_URL; SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_DEFAULT_KEY
+    SUPABASE_URL: Optional[str] = Field(
+        default_factory=lambda: os.environ.get("VITE_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
+    )
+    SUPABASE_ANON_KEY: Optional[str] = Field(
+        default_factory=lambda: os.environ.get("SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+        or os.environ.get("VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+    )
+
+    # Database direct (optional: for crawler/docs/vector search; omit in Cloud Run when using only Supabase API)
+    # Example: postgresql+asyncpg://postgres:[YOUR-PASSWORD]@db.xxx.supabase.co:5432/postgres
+    DATABASE_URL: Optional[str] = None
     
     # Crawler settings
     CRAWL_BASE_URL: str = "https://elma365.com"

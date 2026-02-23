@@ -1,7 +1,6 @@
 """Chat API routes."""
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.database import get_db
+from app.database.supabase_client import get_db_or_supabase
 from app.services.chat_service import ChatService
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -29,7 +28,7 @@ class MessageResponse(BaseModel):
 @router.post("/messages", response_model=MessageResponse)
 async def send_message(
     request: SendMessageRequest,
-    db: AsyncSession = Depends(get_db)
+    db=Depends(get_db_or_supabase),
 ):
     """Send a message in chat and get AI response."""
     try:
@@ -52,7 +51,7 @@ async def upload_document(
     user_id: str = Form(...),
     session_id: str = Form(...),
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db=Depends(get_db_or_supabase),
 ):
     """Upload a document to chat context."""
     try:
@@ -67,11 +66,13 @@ async def upload_document(
             content=content_str,
             file_type=file.content_type
         )
+        at = doc.get("uploaded_at") if isinstance(doc, dict) else getattr(doc, "uploaded_at", None)
+        uploaded_at = at.isoformat() if hasattr(at, "isoformat") else (at[:24] if at else None)
         return {
-            "id": doc.id,
-            "filename": doc.filename,
-            "file_type": doc.file_type,
-            "uploaded_at": doc.uploaded_at.isoformat() if doc.uploaded_at else None
+            "id": doc.get("id") if isinstance(doc, dict) else getattr(doc, "id", None),
+            "filename": doc.get("filename") if isinstance(doc, dict) else getattr(doc, "filename", None),
+            "file_type": doc.get("file_type") if isinstance(doc, dict) else getattr(doc, "file_type", None),
+            "uploaded_at": uploaded_at,
         }
     except Exception as e:
         logger.error(f"Error uploading document: {e}")
@@ -82,7 +83,7 @@ async def upload_document(
 async def get_history(
     session_id: str,
     user_id: str,
-    db: AsyncSession = Depends(get_db)
+    db=Depends(get_db_or_supabase),
 ):
     """Get chat history for a session."""
     try:

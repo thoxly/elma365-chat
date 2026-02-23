@@ -63,7 +63,18 @@ CI/CD уже настроен: «Continuously deploy from a repository». При
 
 В консоли Cloud Run → сервис → Edit & deploy new revision → Variables:
 
-- **DATABASE_URL** — connection string Supabase (asyncpg-формат)
+**Подключение к данным (один из вариантов):**
+
+- **Вариант A — Supabase API** (рекомендуется: не нужен пароль БД):
+  - **VITE_SUPABASE_URL** или **SUPABASE_URL** — URL проекта, например `https://rqcegznybflakuxjqkqu.supabase.co`
+  - **SUPABASE_PUBLISHABLE_DEFAULT_KEY** или **SUPABASE_ANON_KEY** — publishable/anon ключ (`sb_publishable_***`)
+  - Чат, шаблоны и правила знаний работают через API. Эндпоинты краулера/docs требуют DATABASE_URL (вариант B).
+
+- **Вариант B — прямое подключение к PostgreSQL:**
+  - **DATABASE_URL** — connection string в формате `postgresql+asyncpg://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres` (пароль с спецсимволами — в URL-кодировке: `@` → `%40`, `#` → `%23`).
+
+**Остальные переменные:**
+
 - **DEEPSEEK_API_KEY** — ключ для LLM
 - **OPENAI_API_KEY** — ключ для embeddings (краулер)
 - **LOG_LEVEL** — например `INFO`
@@ -88,7 +99,7 @@ python scripts/check_backend_connection.py https://your-service.run.app
 
 Или откройте в браузере: `https://your-service.run.app/health` и `https://your-service.run.app/docs`.
 
-Если не работает: проверьте логи Cloud Run, переменные окружения, что контейнер слушает `PORT` (по умолчанию 8080).
+Если не работает: проверьте логи Cloud Run, переменные окружения (SUPABASE_URL + ключ или DATABASE_URL), что контейнер слушает `PORT` (по умолчанию 8080).
 
 ---
 
