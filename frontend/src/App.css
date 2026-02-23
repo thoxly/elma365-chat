@@ -1,0 +1,182 @@
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+}
+
+.nav .logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  margin-right: 1rem;
+}
+
+.nav-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nav-btn.active {
+  background: #646cff;
+  color: #fff;
+  border-color: #646cff;
+}
+
+.main {
+  flex: 1;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+/* Chat */
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 140px);
+  max-height: 700px;
+}
+
+.chat-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.template-select {
+  padding: 0.5rem;
+  min-width: 200px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #fafafa;
+}
+
+.message {
+  margin-bottom: 1rem;
+}
+
+.message-user .message-content { background: #e3f2fd; }
+.message-assistant .message-content { background: #f5f5f5; }
+
+.message-role {
+  font-size: 0.75rem;
+  color: #666;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.message-content {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.chat-input textarea {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  resize: none;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+}
+
+.btn.primary {
+  background: #646cff;
+  color: #fff;
+  border-color: #646cff;
+}
+
+.btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: #fff;
+}
+
+.placeholder {
+  color: #888;
+}
+
+.error {
+  color: #c00;
+}
+
+/* Templates */
+.templates-page h2,
+.rules-page h2 {
+  margin-top: 0;
+}
+
+.templates-list,
+.rules-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.template-card,
+.rule-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.rule-meta {
+  font-size: 0.75rem;
+  color: #666;
+  margin-left: 0.5rem;
+}
+
+.rule-preview {
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 4em;
+  margin: 0.5rem 0 0;
+}

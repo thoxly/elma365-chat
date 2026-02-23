@@ -1,0 +1,401 @@
+components:
+  components:
+    application_document:
+      name: Документ
+      aliases:
+      - document_application
+      - application_document
+      type: application
+      use_when:
+      - document_workflow
+      - legal_documents
+      - contracts_management
+      - statements_management
+      - invoices_management
+      - file_based_entity
+      - version_control_needed
+      - document_comparison_needed
+      - registration_required
+      - numbering_required
+      - approval_flow_needed
+      - document_route_management
+      - template_based_document
+      - official_document_storage
+      avoid_when:
+      - simple_reference_data
+      - temporal_events_calendar
+      - absence_tracking
+      - non_file_entities
+      - lightweight_notes_without_files
+      - custom_crud_form_required
+      - interface_form_crud_attempt
+      description: 'Приложение для управления документами, требующими прикрепления
+        файлов, ведения версий, регистрации и настройки маршрутов согласования.
+
+        Все операции создания, чтения, обновления и удаления (CRUD) выполняются с
+        помощью встроенной карточки документа, которая обеспечивает работу с файлами,
+        версиями, регистрационными номерами и процессами согласования.
+
+        Поддерживает версионность, регистрацию, присвоение статусов.
+
+        Обязательное поле: файл (file).
+
+        '
+    application_event:
+      name: Событие
+      aliases:
+      - event_application
+      - application_event
+      type: application
+      use_when:
+      - temporal_events
+      - absence_tracking
+      - schedule_planning
+      - shared_calendar
+      - section_calendar
+      - personal_calendar_sync
+      - participants_management
+      - date_time_based_entity
+      - calendar_view_required
+      - schedule_view_required
+      - availability_planning
+      - event_based_bp
+      - status_tracking_for_events
+      avoid_when:
+      - document_workflow
+      - file_based_entity
+      - complex_document_approval
+      - reference_registry
+      - pure_reference_data
+      - non_temporal_entity
+      - requires_detailed_document_metadata
+      - custom_crud_form_required
+      - interface_form_crud_attempt
+      description: 'Приложение для управления событиями, встречами и задачами, привязанными
+        к дате и времени.
+
+        Все операции CRUD выполняются с помощью встроенной карточки события.
+
+        Предназначено для отображения в календарях (личных, разделов) и расписаниях.
+
+        Поддерживает статусы и интеграцию с бизнес-процессами.
+
+        Пользовательские интерфейсы (UI) настраиваются через виджеты на странице,
+        не заменяя встроенную карточку.
+
+        Обязательные поля: дата начала (start_date), дата окончания (end_date), участники
+        (participants).
+
+        '
+    application_standard:
+      name: Стандартное приложение
+      aliases:
+      - standard_application
+      - reference_application
+      type: application
+      use_when:
+      - reference_data
+      - company_data_storage
+      - registry_view
+      - client_registry
+      - order_registry
+      - request_registry
+      - generic_entities
+      - non_temporal_entities
+      - non_file_centric_entity
+      - statuses_needed
+      - bp_integration
+      - bulk_operations_needed
+      - dynamic_forms_needed
+      avoid_when:
+      - temporal_events_calendar
+      - absence_tracking
+      - schedule_centered_entity
+      - file_mandatory_entity
+      - document_versioning_required
+      - registration_number_required
+      - calendar_ui_required
+      - custom_crud_form_required
+      description: 'Универсальное приложение для хранения и управления справочными
+        данными и реестрами (например, контрагенты, заказы, клиенты).
+
+        Операции CRUD выполняются с помощью встроенных форм приложения (карточки элемента).
+
+        Не предназначено для работы с файлами (как обязательным атрибутом) или событиями
+        в календаре.
+
+        Поддерживает статусы, бизнес-процессы и динамические формы.
+
+        Интерфейсная форма (interface_form) не используется для замены встроенных
+        CRUD-форм в рамках одного приложения.
+
+        Обязательное поле: название (title).
+
+        '
+    application_view:
+      name: Реестр приложения
+      aliases:
+      - app_registry
+      - application_registry
+      type: view
+      use_when:
+      - list_items
+      - registry_view
+      - table_view_needed
+      - tile_view_needed
+      - kanban_view_needed
+      - inline_filters
+      - mass_actions
+      - simple_navigation
+      - status_tracking
+      avoid_when:
+      - custom_layout_required
+      - cross_app_data
+      - complex_analytics
+      - role_specific_dashboard
+      - requires_scripts
+      - requires_dynamic_logic
+      - requires_multiple_apps_data
+      description: 'Стандартное представление списка элементов приложения (например,
+        документов, событий, справочников).
+
+        Предоставляет различные режимы отображения: таблица, плитка, канбан.
+
+        Включает функции фильтрации, группировки, поиска, массовых действий и навигации
+        по элементам.
+
+        Является основным интерфейсом для работы с данными внутри приложения.
+
+        '
+    interface_form:
+      name: Интерфейсная форма
+      aliases:
+      - custom_form
+      - form_interface
+      type: interface
+      use_when:
+      - form_for_crud
+      - single_record_creation
+      - single_record_editing
+      - single_record_viewing
+      - dynamic_form_needed
+      - conditional_fields
+      - conditional_visibility
+      - conditional_requiredness
+      - formula_calculation
+      - field_level_validation
+      - per_mode_layout
+      - modal_form_ui
+      - mass_edit_form
+      - button_actions_on_card
+      - object_context_editing
+      - cross_app_composite_form
+      - wizard_multistep_flow
+      - alternative_layout_needed
+      avoid_when:
+      - cross_app_dashboard
+      - aggregated_reporting_only
+      - navigation_only_page
+      - content_page_without_crud
+      - simple_app_crud
+      - app_builtin_card_required
+      - event_builtin_card
+      - document_builtin_card
+      - replaces_app_crud
+      description: 'Пользовательская форма, создаваемая в дизайнере интерфейсов для
+        сложных сценариев работы с данными.
+
+        Используется для многошаговых процессов (визардов), композитных форм, объединяющих
+        данные из нескольких приложений, или для создания альтернативных интерфейсов
+        ввода.
+
+        Не предназначена для замены встроенных карточек стандартных приложений (document,
+        event, standard), а служит для случаев, где стандартный CRUD принципиально
+        не подходит.
+
+        Поддерживает контекст объекта, динамическую видимость и обязательность полей,
+        формулы.
+
+        Обязательное поле: название (title).
+
+        Запрещено использовать виджет страницы (page_widget) на форме.
+
+        '
+    interface_page:
+      name: Интерфейсная страница
+      aliases:
+      - custom_page
+      - page_interface
+      type: interface
+      use_when:
+      - page_layout
+      - role_specific_dashboard
+      - manager_kpi_view
+      - multi_role_ui
+      - cross_app_aggregation
+      - navigation_entrypoint
+      - home_page
+      - reports_dashboard
+      - static_content_page
+      - simple_page_widgets
+      - advanced_page_with_scripts
+      - non_modal_workspace
+      - menu_section_page
+      - global_widgets_host
+      - complex_data_input
+      - wizard_multistep_flow
+      - composite_editing_ui
+      avoid_when:
+      - single_record_edit
+      - create_edit_form_required
+      - heavy_field_level_validation
+      - modal_dialog_required
+      description: 'Пользовательская страница, создаваемая в дизайнере интерфейсов
+        для построения сложных дашбордов, отчетов, рабочих пространств или точек входа
+        в систему.
+
+        Вся логика и интерфейс строятся с помощью виджетов (стандартных и пользовательских,
+        включая Code Widget).
+
+        Предназначена для сценариев, которые невозможно реализовать с помощью стандартных
+        карточек приложений или интерфейсных форм, особенно при необходимости агрегации
+        данных из разных источников или создания специфичной компоновки.
+
+        Запрещено использовать виджет боковой панели (sidebar_widget) на странице.'
+fields:
+  fields:
+    end_date:
+      aliases: []
+      type: datetime
+      use_when:
+      - event_date
+      avoid_when: []
+      description: 'Дата окончания события. Поле неизменяемое (immutable). В официальной
+        документации ELMA365 упоминается в контексте событий и процессов.
+
+        '
+    file:
+      aliases: []
+      type: file
+      use_when:
+      - document_file
+      avoid_when: []
+      description: 'Файл документа. Поле обязательное (mandatory). Файл не удаляется
+        при удалении записи. Соответствует разделу управления файлами в ELMA365.
+
+        '
+    formula_field:
+      aliases: []
+      type: string_number_money
+      use_when:
+      - auto_formula
+      avoid_when: []
+      description: 'Поле, поддерживающее формулы. Ограничения: разрешены формулы (formula_allowed).
+        Используется для автоматических вычислений.
+
+        '
+    participants:
+      aliases: []
+      type: users
+      use_when:
+      - event_participants
+      avoid_when: []
+      description: 'Участники событий. Поле неизменяемое (immutable). Связано с доступом
+        к задачам и экземплярам процессов в ELMA365.
+
+        '
+    required_flag:
+      aliases: []
+      type: boolean
+      use_when:
+      - dynamic_required
+      avoid_when: []
+      description: 'Флажок обязательности. Используется для динамического управления
+        обязательностью полей. Термин присутствует в функциональности платформы.
+
+        '
+    start_date:
+      aliases: []
+      type: datetime
+      use_when:
+      - event_date
+      avoid_when: []
+      description: 'Дата начала события. Поле неизменяемое (immutable). В официальной
+        документации ELMA365 упоминается в контексте событий.
+
+        '
+    title:
+      aliases: []
+      type: system
+      use_when:
+      - title_required
+      avoid_when: []
+      description: 'Ключевое поле, всегда обязательное. Поле системное, неизменяемое
+        (mandatory, immutable). Стандартное поле в объектах ELMA365.
+
+        '
+    visibility_flag:
+      aliases: []
+      type: boolean
+      use_when:
+      - dynamic_visibility
+      avoid_when: []
+      description: Флажок видимости. Используется для динамического управления видимостью
+        полей. Термин присутствует в функциональности платформы.
+permissions:
+  permissions:
+    access_control_system:
+      name: Система прав доступа
+      aliases: []
+      type: concept
+      use_when: Обсуждение механизмов управления видимостью и действиями с задачами,
+        процессами, файлами и другими объектами в ELMA365.
+      avoid_when: []
+      description: Механизм ELMA365 для регулирования видимости данных и разрешения
+        действий пользователей над объектами системы, такими как задачи, экземпляры
+        процессов, файлы и элементы приложений.
+    access_levels:
+      name: Уровни доступа
+      aliases: []
+      type: concept
+      use_when: Описание гранулярности назначения прав на объекты, таких как приложение,
+        папка или конкретный элемент.
+      avoid_when: []
+      description: Уровни, на которых могут назначаться права доступа к объектам.
+        Включает доступ на уровне приложения, папки и отдельного элемента (например,
+        файла или карточки).
+    permission_inheritance:
+      name: Наследование прав
+      aliases: []
+      type: concept
+      use_when: Обсуждение автоматического распространения прав в соответствии с иерархией
+        организационной структуры компании.
+      avoid_when: []
+      description: Механизм автоматического предоставления прав доступа пользователям
+        на основе их позиции в организационной структуре, включенный по умолчанию.
+    group_permissions:
+      name: Права для групп
+      aliases: []
+      type: concept
+      use_when: Описание назначения прав доступа не отдельным пользователям, а целым
+        группам.
+      avoid_when: []
+      description: Права доступа, назначаемые группам пользователей. Такой подход
+        упрощает управление правами для множества пользователей, выполняющих схожие
+        функции.
+views:
+  table:
+    use_when:
+    - list_view
+    forbidden: []
+    explanation: Табличный список.
+  kanban:
+    use_when:
+    - statuses_required
+    forbidden: []
+    explanation: Канбан, если есть статусы.
+  calendar:
+    use_when:
+    - calendar_view
+    forbidden: []
+    explanation: Календарный режим.

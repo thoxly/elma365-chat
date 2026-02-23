@@ -1,0 +1,298 @@
+patterns:
+  registry_basic:
+    description: "классический справочник без динамики и времени"
+    when: ["reference_data", "static_entities", "simple_directory"]
+    solution: ["application_standard"]
+    avoid: ["application_event", "application_document", "page_only"]
+    elma_limits:
+      data:
+        - "нет поддержки периодичности"
+        - "нет версионирования"
+      ui:
+        - "реестр ограничен стандартной таблицей"
+        - "минимальные фильтры"
+      processes:
+        - "обычно процессы не используются"
+      access:
+        - "базовые права на приложение"
+
+  simple_crud:
+    description: "простые формы + статусы, минимальная логика"
+    when: ["crud_only", "low_ui_complexity"]
+    solution: ["application_standard", "statuses", "standard_form"]
+    avoid: ["complex_process", "dynamic_fields_heavy"]
+    elma_limits:
+      data:
+        - "ограниченные типы полей"
+      ui:
+        - "нет сложной динамики отображения"
+      processes:
+        - "статусы не заменяют процесс"
+      access:
+        - "настройка прав только на уровне приложения"
+
+  master_detail:
+    description: "иерархия: объект → подэлементы"
+    when: ["parent_child_entities", "structured_composite"]
+    solution: ["application_standard", "linked_apps_master_child"]
+    avoid: ["single_app_fat"]
+    elma_limits:
+      data:
+        - "нет транзакций master-child"
+        - "нет автоматического каскадного удаления"
+      ui:
+        - "вложенные таблицы только через виджеты"
+      processes:
+        - "процессы не обходят дочерние автоматически"
+      access:
+        - "права на дочерние элементы не наследуются"
+
+  event_calendar:
+    description: "сущности со временем: начало/конец, участники"
+    when: ["temporal_events", "calendar_view"]
+    solution: ["application_event"]
+    avoid: ["standard_app_for_time_logic"]
+    elma_limits:
+      data:
+        - "нет встроенной периодичности событий"
+      ui:
+        - "нет встроенного календаря — требуется кастомный виджет"
+      processes:
+        - "нет cron-планировщика"
+      access:
+        - "нет ACL по участникам"
+
+  approval_workflow:
+    description: "маршруты согласования, несколько ролей"
+    when: ["requires_approval", "role_chain", "document_flow"]
+    solution: ["business_process", "statuses", "actions"]
+    avoid: ["manual_status_change"]
+    elma_limits:
+      data:
+        - "нет версионирования данных до согласования"
+      ui:
+        - "UI форм задач ограничен"
+      processes:
+        - "нет полноценного BPMN-параллелизма"
+      access:
+        - "нет пошаговых ACL внутри процесса"
+
+  document_lifecycle:
+    description: "полный цикл документа: версия, номер, файл"
+    when: ["file_based_entity", "versioning", "registration"]
+    solution: ["application_document"]
+    avoid: ["standard_app_for_docs"]
+    elma_limits:
+      data:
+        - "одно основное файловое поле"
+        - "версии ограничены"
+      ui:
+        - "жёстко фиксированная форма документа"
+      processes:
+        - "регистрация реализуется только процессом"
+      access:
+        - "матрица доступа ограничена возможностями документа"
+
+  task_management:
+    description: "исполнительские задачи: назначение, дедлайны"
+    when: ["work_items", "assignments", "deadlines"]
+    solution: ["business_process", "user_tasks", "auto_actions"]
+    avoid: ["app_level_tasks"]
+    elma_limits:
+      data:
+        - "нет отдельной сущности 'Task' — только задачи процесса"
+      ui:
+        - "нет kanban-доски"
+      processes:
+        - "нет SLA-таймеров, только таймеры действий"
+      access:
+        - "нет индивидуальных прав на задачу вне процесса"
+
+  portal_dashboard:
+    description: "стартовая страница со сводками и навигацией"
+    when: ["portal", "overview_needed", "multi_role_ui"]
+    solution: ["page", "widgets", "dynamic_loading"]
+    avoid: ["application_as_ui"]
+    elma_limits:
+      data:
+        - "агрегация только через API или виджеты"
+      ui:
+        - "нет вложенной маршрутизации"
+        - "нет автообновления без polling"
+      processes:
+        - "работа только через действия"
+      access:
+        - "нет финальной ролевой кастомизации без код-виджетов"
+
+  calendar_aggregation_page:
+    description: "единый календарь из разных приложений"
+    when: ["timeline_view", "aggregate_events"]
+    solution: ["page", "widget_code", "tssdk"]
+    avoid: ["pure_event_app"]
+    elma_limits:
+      data:
+        - "нет join — агрегация делается вручную"
+      ui:
+        - "нет системного календаря"
+      processes:
+        - "агрегация не может запускать процессы"
+      access:
+        - "ролевой фильтр событий пишется вручную"
+
+  microservice_pattern:
+    description: "внешняя логика, интеграции, вычисления"
+    when: ["external_api", "heavy_compute", "webhook_needed"]
+    solution: ["custom_microservice", "module_api", "server_scripts"]
+    avoid: ["widget_only", "bpm_only"]
+    elma_limits:
+      data:
+        - "нет тяжелых вычислений на платформе"
+      ui:
+        - "модули не могут существенно расширять UI"
+      processes:
+        - "нет полноценной асинхронности"
+      access:
+        - "только Bearer-токены"
+
+  dynamic_form_logic:
+    description: "формы с условиями и вычисляемыми полями"
+    when: ["conditional_visibility", "computed_fields"]
+    solution: ["form_rules", "widget_code"]
+    avoid: ["static_form"]
+    elma_limits:
+      data:
+        - "нельзя создавать поля динамически"
+      ui:
+        - "сложная логика требует скриптов"
+      processes:
+        - "процессы не видят динамику формы"
+      access:
+        - "скрытие ≠ ограничение доступа"
+
+  access_matrix:
+    description: "многоуровневые права доступа"
+    when: ["multi_role_access", "folder_structure_needed"]
+    solution: ["folders", "app_access", "element_permissions"]
+    avoid: ["single_role_app"]
+    elma_limits:
+      data:
+        - "нет ACL уровня записи как в классических DMS"
+      ui:
+        - "нет UI для сложных матриц"
+      processes:
+        - "процессы не могут устанавливать granular ACL"
+      access:
+        - "правила наследования не автоматические"
+
+  data_aggregation_view:
+    description: "сводные отчёты, комбинированные таблицы"
+    when: ["cross_app_queries", "aggregated_data", "readonly_dashboard"]
+    solution: ["page", "custom_widget", "tssdk_select"]
+    avoid: ["app_table_only"]
+    elma_limits:
+      data:
+        - "нет join — нужны ручные запросы"
+      ui:
+        - "нет группировок и drill-down"
+      processes:
+        - "отчёты не могут запускать процессы"
+      access:
+        - "ролевые фильтры нужно реализовывать вручную"
+
+  integration_connector:
+    description: "интеграции с внешними системами"
+    when: ["external_system", "token_auth", "sync_required"]
+    solution: ["module", "api_handler", "server_scripts", "storage"]
+    avoid: ["process_only"]
+    elma_limits:
+      data:
+        - "токены хранятся в module params / storage"
+      ui:
+        - "нет встроенного UI для логов интеграций"
+      processes:
+        - "BPM не подписывается на внешние события"
+      access:
+        - "callback-url ограничен архитектурой модуля"
+
+  audit_and_logging:
+    description: "фиксация системных событий и действий"
+    when: ["traceability", "support_needs", "compliance"]
+    solution: ["event_handler", "audit_app", "storage"]
+    avoid: ["client_only_logs"]
+    elma_limits:
+      data:
+        - "storage ограничен 16MB"
+      ui:
+        - "нет системной ленты аудита"
+      processes:
+        - "процессы не получают системные события"
+      access:
+        - "нет ролевой выборки логов"
+
+  data_refresh_pipeline:
+    description: "регулярный пересчет, агрегация или обновление данных по расписанию"
+    when:
+      - "periodic_update"
+      - "data_refresh_needed"
+      - "aggregation_pipeline"
+      - "cross_app_data_processing"
+    solution:
+      - "technical_application (storage_app)"
+      - "scheduler_process (cron-like)"
+      - "aggregation_process"
+      - "script_actions_for_data_collection"
+    avoid:
+      - "manual_update"
+      - "process_per_item (heavy load)"
+      - "widget_only_solution"
+    elma_limits:
+      data:
+        - "нет встроенного cron — расписание делается процессом"
+        - "нет join — данные собираются в скриптах"
+        - "агрегации больших объемов выполняются медленно"
+      ui:
+        - "нет интерфейса мониторинга пайплайна без виджета"
+      processes:
+        - "процессы не умеют параллелить сбор данных автоматически"
+        - "таймеры срабатывают не чаще раз в минуту"
+        - "нет нативного retry-механизма"
+      access:
+        - "scheduler требует системные права"
+        - "агрегация должна вручную учитывать права пользователей"
+
+  aggregate_action_page:
+    description: "страница, которая одновременно агрегирует данные, визуализирует их и управляет логикой через действия/процессы"
+    when:
+      - "complex_ui_needed"
+      - "cross_app_data"
+      - "interactive_dashboard"
+      - "process_actions_from_ui"
+      - "main_portal_page"
+      - "rich_visualization"
+    solution:
+      - "page"
+      - "custom_widgets (charts, tables, cards)"
+      - "widgets_with_server_scripts"
+      - "action_buttons → business_process"
+      - "tssdk_for_data_queries"
+      - "technical_apps_for_cache"
+    avoid:
+      - "application_as_ui"
+      - "pure_process_solution"
+      - "attempt_to_do_complex_ui_in_forms"
+    elma_limits:
+      data:
+        - "нет join — требуется ручная агрегация или кеширование"
+        - "графики не нативные — нужны кастомные виджеты"
+        - "большие выборки нужно кешировать"
+      ui:
+        - "страницы не поддерживают вложенные маршруты"
+        - "нет реактивности — нужен polling или websocket через виджет"
+        - "сложная логика делается только в widget_code"
+      processes:
+        - "кнопки на странице только запускают процессы, не выполняют операции напрямую"
+        - "нет транзакционности между UI и процессом"
+        - "процесс сам не может обновить страницу — требуется обновление виджета"
+      access:
+        - "страница не имеет собственных прав, всё решается через виджеты"
+        - "ролевой доступ к кнопкам нужно писать вручную"
