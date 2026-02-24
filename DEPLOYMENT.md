@@ -73,9 +73,30 @@ python scripts/check_db_connection.py
 
 ## 2. Backend (Google Cloud Run)
 
+**Текущий сервис:**
+- **Проект GCP:** `core-result-377106` (My Project 79954)
+- **Сервис:** `elma365-chat`, регион `europe-west1`
+- **URL:** https://elma365-chat-712236417626.europe-west1.run.app
+
 ### Деплой из репозитория
 
-CI/CD уже настроен: «Continuously deploy from a repository». При пуше в ветку сборка и деплой запускаются автоматически.
+CI/CD настроен через «Continuously deploy from a repository» в консоли Cloud Run: при пуше в выбранную ветку сборка и деплой запускаются автоматически.
+
+**Если сборка не запускается при пуше:**
+
+1. **Проверьте триггер:** [Cloud Console](https://console.cloud.google.com) → **Cloud Build** → **Triggers**. Найдите триггер, привязанный к этому репозиторию.
+   - **Ветка:** должно быть указано совпадение с вашей веткой (например `^main$`). Если указано `^master$`, пуши в `main` не запустят сборку — измените ветку в триггере или нажмите **Run** вручную.
+   - **Триггер включён:** статус должен быть включён (не отключён).
+2. **Запуск вручную:** в списке триггеров нажмите **Run** (▶) у нужного триггера — выберите ветку `main` и запустите сборку.
+3. **Сборка из терминала** (установлен `gcloud`, проект `core-result-377106`):
+   ```bash
+   gcloud config set project core-result-377106
+   gcloud run deploy elma365-chat --source . --region=europe-west1
+   ```
+   Либо через Cloud Build:
+   ```bash
+   gcloud builds submit --config=cloudbuild.yaml --project=core-result-377106 .
+   ```
 
 ### Переменные окружения (Cloud Run)
 
@@ -111,11 +132,10 @@ CI/CD уже настроен: «Continuously deploy from a repository». При
 ### Проверка
 
 ```bash
-# Подставьте URL вашего сервиса Cloud Run
-python scripts/check_backend_connection.py https://your-service.run.app
+python scripts/check_backend_connection.py https://elma365-chat-712236417626.europe-west1.run.app
 ```
 
-Или откройте в браузере: `https://your-service.run.app/health` и `https://your-service.run.app/docs`.
+Или откройте в браузере: [health](https://elma365-chat-712236417626.europe-west1.run.app/health), [docs](https://elma365-chat-712236417626.europe-west1.run.app/docs).
 
 Если не работает: проверьте логи Cloud Run, переменные окружения (SUPABASE_URL + ключ или DATABASE_URL), что контейнер слушает `PORT` (по умолчанию 8080).
 
@@ -150,7 +170,7 @@ python scripts/check_backend_connection.py https://your-service.run.app
 
 ```bash
 export DATABASE_URL="postgresql+asyncpg://..."
-export API_URL="https://your-backend.run.app"
+export API_URL="https://elma365-chat-712236417626.europe-west1.run.app"
 export FRONTEND_URL="https://elma365-chat.vercel.app"
 python scripts/check_all_services.py
 ```
@@ -158,6 +178,26 @@ python scripts/check_all_services.py
 ---
 
 ## Troubleshooting
+
+### Ошибка «Multiple head revisions» при старте контейнера (Alembic)
+
+Сообщение в логах Cloud Run:
+```text
+Multiple head revisions are present for given argument 'head'; please specify a specific target revision...
+```
+
+**Причина:** в образе оказались старые файлы миграций (две ветки ревизий). В текущем репозитории цепочка миграций уже приведена к **одной голове** (`add_chat_sessions`), и код на GitHub совпадает с этой цепочкой.
+
+**Что сделать:**
+
+1. **Убедиться, что деплой идёт с актуального кода:** в GitHub в ветке `main` должны быть только 7 файлов в `alembic/versions/` (без `initial_tz_hz_db.py` и `remove_runs_table.py`). Коммит «Fix Alembic multiple heads» (279c37e) это уже исправил.
+
+2. **Пересобрать образ без кэша** (чтобы в образ попал текущий код):
+   - **Вариант A:** В [Cloud Console](https://console.cloud.google.com) → Cloud Build → History → выбрать последнюю сборку для этого репозитория → **Retry** не поможет с кэшем. Вместо этого сделайте **пустой коммит и пуш**, чтобы запустилась новая сборка с нуля:  
+     `git commit --allow-empty -m "Trigger rebuild" && git push origin main`
+   - **Вариант B:** В настройках триггера Cloud Build (или в `cloudbuild.yaml`, если используется) временно включить опцию **Clear cache** / `--no-cache` для шага сборки Docker, затем задеплоить новую ревизию.
+
+3. После успешной сборки и деплоя новая ревизия должна стартовать без ошибки миграций.
 
 ### 500 Internal Server Error на /api/chat и /api/templates
 
@@ -189,6 +229,7 @@ python scripts/check_all_services.py
 
 | Проблема | Что проверить |
 |----------|----------------|
+| Контейнер не стартует: «Multiple head revisions» при `alembic upgrade head` | В репозитории цепочка миграций приведена к одному head. **Задеплойте новую ревизию** из актуальной ветки (main): Cloud Run должен собрать образ из последнего коммита. Ревизии, собранные до фикса (например 00014-h5c), содержат старые миграции с двумя heads. |
 | Нет подключения к БД | Пароль в DATABASE_URL, расширения vector/pg_trgm, доступность хоста |
 | Бэкенд не стартует на Cloud Run | Логи ревизии, переменные окружения, порт 8080 |
 | Фронт не видит API | VITE_API_URL на Vercel, CORS на бэкенде |

@@ -1,0 +1,33 @@
+# Сборка и деплой на Cloud Run.
+# Проект: core-result-377106. URL: https://elma365-chat-712236417626.europe-west1.run.app
+# Запуск вручную: gcloud builds submit --config=cloudbuild.yaml --project=core-result-377106 .
+substitutions:
+  _SERVICE_NAME: elma365-chat
+  _REGION: europe-west1
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${_SERVICE_NAME}:${SHORT_SHA}
+      - .
+    id: build
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${_SERVICE_NAME}:${SHORT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+    id: deploy
+    waitFor: [build]
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${_SERVICE_NAME}:${SHORT_SHA}
